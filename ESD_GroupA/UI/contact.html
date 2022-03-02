@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Recommendation</title>
+
+    <!-- Required meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css" />
+    <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+    <style>
+        .bs-example {
+            margin: 20px;
+        }
+        .dropdown .dropdown-menu a:hover
+        {
+        color: #fff;
+        background-color: #28a745;
+        border-color: #fff;
+        }
+    </style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<body>
+    <div class="bs-example">
+        <ul class="nav nav-tabs mt-3">
+            <li class="nav-item">
+                <a href="client_recommendation.html" class="nav-link">Home</a>
+            </li>
+            <li class="nav-item">
+                <a href="contact.html" class="nav-link active">Contact Us</a>
+            </li>
+            <li class="nav-item ml-auto mr-0 my-2"><p style="text-align:right; margin:0px auto 0px auto; font-style: Lato;"><span
+                id="name"></span>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <img src="image/user.png" width="25" height="25" class="rounded-circle">
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+                    <a class="dropdown-item" href="login.html" onclick="logout()">Log Out</a>
+                </div>
+            </li>   
+        </ul>
+    </div>
+<br>
+    <div class="container center">
+            <h4><span><i class="fas fa-phone"></i>&nbsp;</span>Call support</h4>
+            <p>Call us at <span><a href="tel:+6564201520" style="color: #00ad5f;" >+65 6420 1520</a></span></p>
+            <p>Our call support hours are Mon-Fri 8am - 6pm SGT</p>
+            <h4><span><i class="fa fa-envelope" aria-hidden="true" ></i>&nbsp;</span>Email Support</h4>
+            <p>Email us at <span><a href="mailto:support@esdventures.com" style="color: #00ad5f;"> support@esdventures.com</a></span></p>
+            <h4><span><i class="fas fa-map-marker-alt"></i>&nbsp;</span>Address</h4>
+            <p>1 Temasek Ave<br>#18-12<br>Millenia Walk<br>Singapore 0391392</p>
+    </div>
+    <script>
+         function logout(){
+        	function firstFunction(_callback){
+            sessionStorage.clear();
+            _callback();
+            }
+
+            function secondFunction(){
+                firstFunction(function() {
+                    window.location = 'login.html';
+                });    
+            }
+            secondFunction();
+        }
+        
+        var reco_URL = "http://localhost:5001/recommendation";
+        var validateReco_URL = "http://localhost:5200/validate_recommendation";
+
+        var user_type = sessionStorage.getItem("currentloggedin_type");
+        var login_name = sessionStorage.getItem("currentloggedin");
+        var login_id = sessionStorage.getItem("currentloggedin_id");
+        document.getElementById("name").innerHTML = login_name;
+
+        if (login_name === null) {
+            window.location = "login.html";
+        } else if (user_type == "IC") {
+            window.location = "investment.html";
+        }
+    </script>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>

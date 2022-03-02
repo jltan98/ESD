@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Recommendation</title>
+
+    <!-- Required meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css" />
+    <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+    <style>
+        .bs-example {
+            margin: 20px;
+        }
+        .dropdown .dropdown-menu a:hover
+        {
+        color: #fff;
+        background-color: #28a745;
+        border-color: #fff;
+        }
+    </style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<body>
+    <div class="bs-example">
+        <ul class="nav nav-tabs mt-3">
+            <li class="nav-item">
+                <a href="client_recommendation.html" class="nav-link active">Home</a>
+            </li>
+            <li class="nav-item">
+                <a href="contact.html" class="nav-link">Contact Us</a>
+            </li>
+            <li class="nav-item ml-auto mr-0 my-2"><p style="text-align:right; margin:0px auto 0px auto; font-style: Lato;"><span
+                id="name"></span>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <img src="image/user.png" width="25" height="25" class="rounded-circle">
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+                    <a class="dropdown-item" href="login.html" onclick="logout()">Log Out</a>
+                </div>
+            </li>   
+        </ul>
+    </div>
+
+    <div id="app" class="container">
+        <div class="container6">
+            <b><label for="select">Choose Your Investment ID:</label></b> &nbsp;
+            <select v-model="selected" @click="findInvID()" class="select-css" id="select">
+                <option v-for="inv in individual_invest_id">
+                    {{ inv }}
+                </option>
+            </select>
+        </div>
+        <div class="container" style="display:none" id="results">
+            <table id="table" class='table table-striped' v-if='hasReco'>
+                <thead>
+                    <tr>
+                        <th>Investment ID</th>
+                        <th>Ticker Name</th>
+                        <th>Stock Name</th>
+                        <th>Creation Date</th>
+                        <th>Recommendation</th>
+                        <th>Choose Recommendation</th>
+                    </tr>
+                    <template id="invItems" v-for="investment in investments">
+                        <tr>
+                            <td>{{ investment.investment_id }}</td>
+                            <td>{{ investment.ticker_name }}</td>
+                            <td>{{ investment.stock_name }}</td>
+                            <td>{{ investment.reco_created_date }}</td>
+                            <td>{{ investment.recommendation }}</td>
+                            <td id="checkStatus" v-if="status == ''">
+                                <button class="btn btn-outline-success" type="button" id="approve"
+                                    @click="notifyIC('approve')">Approve</button>
+                                <button class="btn btn-outline-danger" type="button" id="reject"
+                                    @click="notifyIC('reject')">Reject</button>
+                            </td>
+                            <td v-else> {{ output }}</td>
+                            <td></td>
+                        </tr>
+                    </template>
+                </thead>
+            </table>
+            <div class="text-danger" id="msg" v-else>{{ message }}</div>
+        </div>
+    </div>
+    <script>
+         function logout(){
+        	function firstFunction(_callback){
+            sessionStorage.clear();
+            _callback();
+            }
+
+            function secondFunction(){
+                firstFunction(function() {
+                    window.location = 'login.html';
+                });    
+            }
+            secondFunction();
+        }
+
+        var reco_URL = "http://localhost:5001/recommendation";
+        var validateReco_URL = "http://localhost:5200/validate_recommendation";
+
+        var user_type = sessionStorage.getItem("currentloggedin_type");
+        var login_name = sessionStorage.getItem("currentloggedin");
+        var login_id = sessionStorage.getItem("currentloggedin_id");
+        document.getElementById("name").innerHTML = login_name;
+
+        if (login_name === null) {
+            window.location = "login.html";
+        } else if (user_type == "IC") {
+            window.location = "investment.html";
+        }
+
+        var app = new Vue({
+            el: "#app",
+            computed: {
+                hasReco: function () {
+                    return this.investments.length > 0;
+                }
+            },
+            data: {
+                retrieve_id: "",
+                investments: [],
+                status: "",
+                dropdown: "",
+                investment_id: "",
+                selected: "",
+                output: "",
+                individual_invest_id: "",
+                updateStatus: false,
+                validateReco: false,
+                message: "There is a problem retrieving investment data, please try again later.",
+            },
+            mounted: function () {
+                this.retrieve_id = sessionStorage.getItem("currentloggedin_invid");
+                this.individual_invest_id = this.retrieve_id.split(', ');
+            },
+            methods: {
+                findInvID: function () {
+                    this.status = "";
+                    // console.log(this.selected);
+                    if (this.selected != "") {
+                        const response =
+                            fetch(`${reco_URL}/${login_id}/${this.selected}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    // console.log(response);
+                                    if (data.code === 404) {
+                                        this.message = data.message;
+                                        this.investments = [];
+                                        $("#results").css("display", "block");
+                                        $("#msg").css("display", "block");
+                                        $("#invItems").css("display", "none");
+                                    } else {
+                                        this.investments = [data.data];
+                                        $("#results").css("display", "block");
+                                        // console.log(this.investments[0].status);
+                                        if (this.investments[0].status != "") {
+                                            this.status = this.investments[0].status;
+                                            // console.log(this.status);
+                                            if (this.status == "approve") {
+                                                this.output = "You have already " + this.status + "d this recommendation";
+                                            } else {
+                                                this.output = "You have already " + this.status + "ed this recommendation";
+                                            }
+                                        }
+                                    }
+                                })
+                                .catch(error => {
+                                    // Errors when calling the service; such as network error, 
+                                    // service offline, etc
+                                    console.log(this.message + error);
+                                    $("#msg").css("display", "block");
+                                    $("#invItems").css("display", "none");
+                                });
+                    }
+                },
+                notifyIC: function (status) {
+                    this.status = status;
+                    this.investment_id = this.selected;
+                    if (this.status == "approve") {
+                        this.output = "You have already " + this.status + "d this recommendation";
+                    } else {
+                        this.output = "You have already " + this.status + "ed this recommendation";
+                    }
+                    fetch(validateReco_URL,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-type": "application/json"
+                            },
+                            body: JSON.stringify(
+                                {
+                                    "status": this.status,
+                                    "client_id": login_id,
+                                    "investment_id": this.investment_id,
+
+                                })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // console.log(data);
+                            result = data.data;
+                            // console.log(result);
+                            // 3 cases
+                            switch (data.code) {
+                                case 201:
+                                    // 201
+                                    this.updateStatus = true;
+                                    statusMsg =
+                                        `Success in updating the status.
+                                        status:
+                                        ${result.recommendation_output.code}:${result.recommendation_output.data}`;
+                                    break;
+                                case 400:
+                                case 500:
+                                    // 500 
+                                    statusMsg =
+                                        `Recommendation creation process with error:
+                                        status:
+                                        ${result.recommendation_output.code}:${result.recommendation_output.message}
+                                        Error handling:
+                                        ${data.message}`;
+                                    break;
+                                default:
+                                    statusMsg = `Unexpected error: ${data.code}`;
+                                    console.log(`Unknown error code : ${data.code}`);
+                                    break;
+
+                            } // switch
+
+                            if (status == "approve") {
+                            } else {
+                                alert("You have " + status + "ed this recommendation");
+                            }
+                            console.log(statusMsg);
+                            this.validateReco = true;
+                        })
+                        .catch(error => {
+                            console.log("Errors: " + error);
+                        })
+                }
+
+            }
+
+        });
+    </script>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>

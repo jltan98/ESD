@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Investment</title>
+
+    <!-- Required meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+    <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="icon" type="image/png" href="image/ESDV.png" />
+    <style>
+        .bs-example {
+            margin: 20px;
+            
+        }
+        .dropdown .dropdown-menu a:hover
+        {
+        color: #fff;
+        background-color: #28a745;
+        border-color: #fff;
+        }
+        
+    </style>
+
+</head>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<body>
+    <div class="bs-example">
+        <ul class="nav nav-tabs mt-3">
+            <li class="nav-item">
+                <a href="investment.html" class="nav-link active">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="tweets.html">Twitter</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="news.html">News</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="ic_recommendation.html">Recommendation Status</a>
+            </li>
+            <li class="nav-item ml-auto mr-0 my-2"><p style="text-align:right; margin:0px auto 0px auto; font-style: Lato;"><span
+                id="name"></span>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <img src="image/user.png" width="25" height="25" class="rounded-circle">
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+                    <a class="dropdown-item" href="login.html" onclick="logout()">Log Out</a>
+                </div>
+            </li>   
+        </ul>
+    </div>
+
+    <div id="app" class="container">
+        <div class="container6">
+            <form class="form-inline" onkeydown="return (event.keyCode!=13);">
+                <input class="form-control mr-sm-2" v-model="client_id"
+                    placeholder="Who are you searching for? (Client ID)" id="search">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="button" @click="findClient()">Search</button>
+            </form>
+        </div>
+        <div class="container" style="display:none" id="results">
+            <table id="table" class='table table-striped' v-if='hasClient'>
+                <thead>
+                    <tr>
+                        <th>Client ID</th>
+                        <th>Client Name</th>
+                        <th>Client Age</th>
+                        <th>Client Chat ID</th>
+                        <th>Client Type</th>
+                        <th>Investment ID</th>
+                        <!-- <th>Ticker Name</th>
+                        <th>Stock Name</th> -->
+                        <th>Make Recommendation</th>
+                    </tr>
+                    <template v-for="client in clients">
+                        <tr>
+                            <td>{{ client.client_id }}</td>
+                            <td>{{ client.client_name }}</td>
+                            <td>{{ client.client_age }}</td>
+                            <td>{{ client.client_chatid }}</td>
+                            <td>{{ client.client_type }}</td>
+                            <td>{{ client.investment_id}}</td>
+                            <!-- <td>{{ client.ticker_name }}</td>
+                            <td>{{ client.stock_name }}</td> -->
+                            <td><button class="btn btn-outline-success" type="button" onclick="chooseInv()" id="reco"
+                                    data-toggle="modal" data-target="#modal">Recommend</button></td>
+                            <td></td>
+                        </tr>
+                    </template>
+                </thead>
+            </table>
+            <div class="text-danger" v-else>{{ message }}</div>
+
+            <br>
+            <span v-html="output" v-if=hasClient>
+                
+            </span>
+        </div>
+        <div class="modal" id="modal" style="display: none;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Which Investment ID?</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-for="client in clients">
+                            <div v-for='id in splitJoin(client.investment_id)'>
+                                <table class="table table-borderless">
+                                    <tr><button class='btn btn-success' type='button'
+                                            @click="openform(id)">{{id}}</button></tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class='form-group' id="form" style="display: none;">
+                            <label for='recommendation'>You are making recommendations for
+                                <b>{{investment_id}}, {{ ticker_name }}.</b></label>
+                            <textarea class='form-control' id='recommendation' rows='4' cols='50'></textarea>
+                            <p></p>
+                            <input type="checkbox" id="edit" @click="openform2()">
+                            <label for="edit"> I would like to overwrite the previous approved recommendation</label>
+                            <div id="form2" style="display: none;">
+                                <label for='comment'><b>Comment:</b></label>
+                                <textarea class='form-control'
+                                    placeholder='State the reason for overwriting the previously approved recommendation'
+                                    id='comment' rows='4' cols='50'></textarea>
+                            </div>
+                            <div class="text-right"><button type='submit' class='btn btn-primary'
+                                    @click="createReco()">Submit</button></div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div> <!-- app: container -->
+
+    <script>
+        function logout(){
+        	function firstFunction(_callback){
+            sessionStorage.clear();
+            _callback();
+            }
+
+            function secondFunction(){
+                firstFunction(function() {
+                    window.location = 'login.html';
+                });    
+            }
+            secondFunction();
+        }
+    
+        console.log(sessionStorage.getItem("currentloggedin"));
+    
+        var ic_name = sessionStorage.getItem("currentloggedin");
+        document.getElementById("name").innerHTML = ic_name;
+        var ic_id = sessionStorage.getItem("currentloggedin_id");
+        var ic_chatid = sessionStorage.getItem("currentloggedin_ICchatid");
+        var type = sessionStorage.getItem("currentloggedin_type");
+        
+        if (ic_name === null) {
+            window.location = "login.html";
+        } else if (type != "IC") {
+            window.location = 'client_recommendation.html';
+        }
+
+        function chooseInv() {
+            document.getElementById('modal').style.display = "block"
+        }
+
+        var get_all_URL = "http://localhost:5000/users";
+        var makeReco_URL = "http://localhost:5100/make_recommendation";
+
+        var app = new Vue({
+            el: "#app",
+            computed: {
+                hasClient: function () {
+                    if (this.clients.length > 0) {
+                        this.createTable();
+                    }
+                    return this.clients.length > 0;
+                }
+            },
+            data: {
+                client_id: "",
+                clients: [],
+                investment_id: "",
+                ticker_name: "",
+                stock_name: "",
+                recommendation: "",
+                comment: "",
+                invList: [],
+                tickerList: [],
+                stockList: [],
+                group: [],
+                item: [],
+                output: "",
+                num: -1,
+                edit: false,
+                recommendationSuccess: false,
+                makeRecommendation: false,
+                message: "There is a problem retrieving clients data, please try again later.",
+            },
+            methods: {
+                findClient: function () {
+                    if (isNaN(this.client_id)) {
+                        this.message = "There is no such client."
+                        this.clients = [];
+                        $("#results").css("display", "block");
+                    } else {
+                        // console.log(this.client_id);
+                        const response =
+                            fetch(`${get_all_URL}/client/${this.client_id}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    // console.log(response);
+                                    if (data.code === 404) {
+                                        // no client in db
+                                        this.message = data.message;
+                                        this.clients = [];
+                                        $("#results").css("display", "block");
+                                    } else {
+                                        if (ic_id == data.data.IC_id) {
+                                            this.clients = [data.data];
+                                            // console.log(this.invList, this.stock_name, this.ticker_name);
+                                            $("#results").css("display", "block");
+                                        }
+                                        else {
+                                            this.message = "You are not authorised to view this client.";
+                                            this.clients = [];
+                                            $("#results").css("display", "block");
+                                        }
+
+                                    }
+                                })
+                                .catch(error => {
+                                    // Errors when calling the service; such as network error, 
+                                    // service offline, etc
+                                    console.log(this.message + error);
+
+                                });
+                    }
+                },
+                createTable: function () {
+                    var clientInfo = this.clients[0];
+                    this.invList = clientInfo["investment_id"].split(", ");
+                    this.stockList = clientInfo["stock_name"].split(", ");
+                    this.tickerList = clientInfo["ticker_name"].split(", ");
+                    for (let i = 0; i < this.invList.length; i++) {
+                        this.group += [this.invList[i], this.tickerList[i], this.stockList[i]];
+                        if (i != (this.invList.length - 1)) {
+                            this.group += ", "
+                        }
+                    }
+                    this.group = this.group.split(", ");
+                    // console.log(this.group);
+
+                    this.output = `
+                        <table class='table table-striped'>
+                            <thead>
+                                <tr>
+                                    <th>Investment ID</th>
+                                    <th>Ticker Name</th>
+                                    <th>Stock Name</th>
+                                </tr>`;
+                    for (let i = 0; i < this.group.length; i++) {
+                        this.item = this.group[i].split(",");
+                        // console.log(this.item);
+                        this.output += `
+                                <tr>
+                                    <td>${this.item[0]}</td>
+                                    <td>${this.item[1]}</td>
+                                    <td>${this.item[2]}</td>
+                                 <tr>`;
+                    }
+                    this.output += `    
+                            </thead>
+                                </table>`
+                },
+                splitJoin(theText) {
+                    return theText.split(', ');
+                },
+                openform: function (id) {
+                    if ($("#form").css("display") == "none") {
+                        this.investment_id = id;
+                        $("#form").css("display", "block");
+                    } else {
+                        if (this.investment_id == id) {
+                            $("#form").css("display", "none");
+                        } else {
+                            this.investment_id = id;
+                            document.getElementById("recommendation").value = "";
+                            document.getElementById("comment").value = "";
+                        }
+                    }
+                    for (var n = 0; n < this.invList.length; n++) {
+                        if (this.invList[n] == this.investment_id) {
+                            this.ticker_name = this.tickerList[n];
+                        }
+                    }
+                },
+                openform2: function () {
+                    this.edit = document.getElementById("edit");
+                    if (this.edit.checked) {
+                        $("#form2").css("display", "block");
+                    } else {
+                        $("#form2").css("display", "none");
+                    }
+                },
+                createReco: function () {
+                    this.recommendation = document.getElementById("recommendation").value;
+                    this.comment = document.getElementById("comment").value;
+
+                    if (this.edit.checked && this.comment == "") {
+                        alert("Please state the reason for overwriting an approved recommendation before proceeding.")
+                    } else if (this.recommendation == "") {
+                        alert("Please input your recommendation before submitting!!");
+                    } else {
+                        for (var n = 0; n < this.invList.length; n++) {
+                            if (this.invList[n] == this.investment_id) {
+                                this.ticker_name = this.tickerList[n];
+                                this.stock_name = this.stockList[n];
+                            }
+                        }
+                        // console.log(this.client_id, this.investment_id, this.recommendation, this.ticker_name, this.stock_name);
+                        fetch(makeReco_URL,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-type": "application/json"
+                                },
+                                body: JSON.stringify(
+                                    {
+                                        "client_id": this.client_id,
+                                        "investment_id": this.investment_id,
+                                        "recommendation": this.recommendation,
+                                        "comment": this.comment,
+                                        "ticker_name": this.ticker_name,
+                                        "stock_name": this.stock_name,
+                                        "IC_id": ic_id,
+                                        "IC_chatid": ic_chatid,
+                                    })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log(data);
+                                result = data.data;
+                                console.log(result);
+                                // 3 cases
+                                switch (data.code) {
+                                    case 201:
+                                        // 201
+                                        $('#modal').modal('hide');
+                                        alert("Recommendation has been successfully updated");
+                                        document.getElementById('form').style.display = 'none';
+                                        this.recommendationSuccess = true;
+                                        recoMessage =
+                                            `Success in creating the recommendation.
+                                        recommendation_result:
+                                        ${result.recommendation_output.code}:${result.recommendation_output.data}`;
+                                        break;
+                                    case 400:
+                                        $('#modal').modal('hide');
+                                        alert("There is an error with the creation of recommendation, please try again later.");
+                                    case 500:
+                                        // 500 
+                                        $('#modal').modal('hide');
+                                        alert("There is an error with the creation of recommendation, please try again later.");
+                                        recoMessage =
+                                            `Recommendation creation process with error:
+                                            recommendation_result:
+                                        ${result.recommendation_output.code}:${result.recommendation_output.message}
+
+                                        Error handling:
+                                        ${data.message}`;
+                                        break;
+                                    default:
+                                        recoMessage = `Unexpected error: ${data.code}`;
+                                        console.log(`Unknown error code : ${data.code}`);
+                                        break;
+
+                                } // switch
+                                console.log(recoMessage);
+                                this.makeRecommendation = true;
+                            })
+                            .catch(error => {
+                                console.log("Errors: " + error);
+                            })
+                        document.getElementById('recommendation').value = '';
+                        document.getElementById('comment').value = '';
+                    }
+                }
+            }
+        });
+
+    </script>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

@@ -1,0 +1,139 @@
+version: "3.8"
+
+volumes:
+  rabbitmq_data:
+
+services:
+  #################################################
+  # Recommendation: The Recommendation microservice
+  #################################################
+  recommendation:
+    build:
+      context: ./
+      dockerfile: recommendation.Dockerfile
+    image: [dockerid]/recommendation:esdproject
+    restart: always
+    environment:
+      dbURL: mysql+mysqlconnector://is213@host.docker.internal:3306/recommendation
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5001:5001"
+
+  ################################
+  # RabbitMQ: The messaging broker
+  ################################
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: esdproject-rabbit
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  #######################################################
+  # Notification Record: The Notification service
+  #######################################################
+  notification:
+    build:
+      context: ./
+      dockerfile: notification.Dockerfile
+    image: [dockerid]/notification:esdproject
+    restart: always
+    depends_on:
+      - rabbitmq
+    environment:
+      rabbit_host: rabbitmq
+      rabbit_port: 5672
+      PYTHONUNBUFFERED: 1
+
+  
+  #######################################################
+  # Tweets Record: The Twitter API
+  #######################################################
+  tweets:
+    build:
+      context: ./
+      dockerfile: tweets.Dockerfile
+    image: [dockerid]/tweets:esdproject
+    restart: always
+    environment:
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5002:5002"
+
+  #######################################################
+  # Xignite Record: The Xignite API
+  #######################################################
+  xignite:
+    build:
+      context: ./
+      dockerfile: xignite.Dockerfile
+    image: [dockerid]/xignite:esdproject
+    restart: always
+    environment:
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5003:5003"
+
+  ########################################
+  #Users Portfolio: The Users microservice
+  ########################################
+  users:
+    build:
+      context: ./
+      dockerfile: users.Dockerfile
+    image: [dockerid]/users:esdproject
+    restart: always
+    environment:
+      dbURL: mysql+mysqlconnector://is213@host.docker.internal:3306/users
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5000:5000"
+      
+###########################################################
+  # Make Recommendation: The Make Recommendation microservice
+  ###########################################################
+  make_recommendation:
+    build:
+      context: ./
+      dockerfile: make_recommendation.Dockerfile
+    image: [dockerid]/make_recommendation:esdproject
+    restart: always
+    depends_on:
+      - users
+      - recommendation
+      - notification
+      - rabbitmq
+    environment:
+      rabbit_host: rabbitmq
+      rabbit_port: 5672
+      users_URL: http://users:5000/users/client
+      recommendation_URL: http://recommendation:5001/recommendation
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5100:5100"
+
+###########################################################
+  # Validate Recommendation: The Validate Recommendation microservice
+  ###########################################################
+  validate_recommendation:
+    build:
+      context: ./
+      dockerfile: validate_recommendation.Dockerfile
+    image: [dockerid]/validate_recommendation:esdproject
+    restart: always
+    depends_on:
+      - users
+      - recommendation
+      - notification
+      - rabbitmq
+    environment:
+      rabbit_host: rabbitmq
+      rabbit_port: 5672
+      users_URL: http://users:5000/users/ic_chatid
+      recommendation_URL: http://recommendation:5001/recommendation/client_update
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5200:5200"

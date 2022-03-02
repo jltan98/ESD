@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>ESD Ventures</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+	<link rel="icon" type="image/png" href="image/ESDV.png" />
+	<link rel="stylesheet" href="css/style.css" />
+	<script src="javascript/hash.js"></script>
+	<style>
+		.container i {
+    		margin-left: -30px;
+			margin-top: 15px;
+		}
+	</style>
+
+</head>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<body>
+	<section class="ftco-section" id="container">
+		<div id="app" class="container">
+			<div class="row justify-content-center">
+				<div class="col-md-7 col-lg-5">
+					<div class="login-wrap p-3 p-md-4">
+						<form id="form_id" method="POST" name="myform" class="login-form">
+							<h4 class="text-center"><b style="color: #00ad5f;">Choose Account type</b></h4>
+							<p></p>
+							<table class="table-borderless center" style="width: 80%;">
+								<tr>
+									<td align="center">
+										<input type="radio" class="radio_item" value="ic" name="account_type" id="ic"
+											required>
+										<label class="label_item" for="ic"> <img src="image/advisor.png"> </label>
+									</td>
+									<td align="center">
+										<input type="radio" class="radio_item" value="client" name="account_type"
+											id="client">
+										<label class="label_item" for="client"> <img src="image/customer.png"> </label>
+									</td>
+								</tr>
+								<tr>
+									<td style="text-align:center">
+										Investment Counsellor
+									</td>
+									<td style="text-align:center">
+										Client
+									</td>
+								</tr>
+							</table>
+							<br>
+							<h3 class="text-center mb-4">Welcome</h3>
+							<div class="form-group">
+								<input type="text" class="form-control rounded-left" placeholder="Username"
+									id="username" required>
+							</div>
+							<div class="form-group d-flex">
+								<input type="password" class="form-control rounded-left" placeholder="Password"
+									id="password" required> <i id="pass-status" class="fa fa-eye" aria-hidden="true" onClick="viewPassword()"></i>
+							</div>
+							<div class="form-group">
+								<input type="button" value="Login" id="submit" @click="account()" />
+							</div>
+
+							<div class="alert alert-danger" role="alert" id="message"
+								style="display:none; text-align:center">
+								{{message}}
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+	<script>
+		console.log(sessionStorage.getItem("currentloggedin"));
+			function preventBack() { 
+		    window.history.forward(); 
+		    window.localStorage.clear();
+		}
+		setTimeout("preventBack()", 0);
+		window.onunload = function () { null }
+    
+		if (sessionStorage.getItem("currentloggedin") != null) {
+			if (sessionStorage.getItem("currentloggedin_type") == "IC") {
+				window.location = "investment.html";
+			} else {
+				window.location = "client_recommendation.html";
+			}
+		}
+
+		
+		function viewPassword(){
+			var passwordInput = document.getElementById('password');
+			var passStatus = document.getElementById('pass-status');
+			if (passwordInput.type == 'password'){
+				passwordInput.type='text';
+				passStatus.className='fa fa-eye-slash';
+			}
+			else{
+				passwordInput.type='password';
+				passStatus.className='fa fa-eye';
+			}
+		}
+
+		var get_users_URL = "http://localhost:5000/users";
+
+		var app = new Vue({
+			el: "#app",
+			data: {
+				username: "",
+				password: "",
+				clients: [],
+				ICs: [],
+				check: false,
+				message: "",
+				attempt: 3,
+			},
+			methods: {
+				account: function () {
+					if (myform.account_type.value == '') {
+						alert("Please select account type!");
+						return false;
+					}
+					else {
+						this.username = document.getElementById("username").value;
+						this.password = document.getElementById("password").value;
+						this.password = SHA1(this.password);
+						console.log(this.password);
+						var ic = document.getElementById("ic");
+						var client = document.getElementById("client");
+						if (ic.checked == true) {
+							const response =
+								fetch(`${get_users_URL}/ic`)
+									.then(response => response.json())
+									.then(data => {
+										if (data.code === 404) {
+											this.message = "Unable to retrieve IC database at the moment. Please try again later."
+											$("#message").css("display", "block");
+										} else {
+											this.ICs = [data.data.ICs][0];
+											var ic_length = this.ICs.length;
+											for (let i = 0; i < ic_length; i++) {
+												if (this.username == this.ICs[i].IC_accountname && this.password == this.ICs[i].IC_password) {
+													console.log("Login successfully");
+													sessionStorage.setItem('currentloggedin_type', "IC");
+													sessionStorage.setItem('currentloggedin', this.ICs[i].IC_name);
+													sessionStorage.setItem('currentloggedin_id', this.ICs[i].IC_id);
+													sessionStorage.setItem('currentloggedin_ICchatid', this.ICs[i].IC_chatid);
+													window.location = "investment.html";
+													this.check = true;
+													break
+												}
+											}
+										}
+									})
+									.catch(error => {
+										// Errors when calling the service; such as network error, 
+										// service offline, etc
+										console.log(this.message + error);
+									});
+						} else if (client.checked == true) {
+							const response =
+								fetch(`${get_users_URL}/client`)
+									.then(response => response.json())
+									.then(data => {
+										if (data.code === 404) {
+											this.message = "Unable to retrieve client database at the moment. Please try again later."
+											$("#message").css("display", "block");
+										} else {
+											this.clients = [data.data.clients][0];
+											var client_length = this.clients.length;
+											for (let i = 0; i < client_length; i++) {
+												if (this.username == this.clients[i].client_accountname && this.password == this.clients[i].client_password) {
+													this.check = true;
+													console.log("Login successfully");
+													sessionStorage.setItem('currentloggedin_type', "client");
+													sessionStorage.setItem('currentloggedin', this.clients[i].client_name);
+													sessionStorage.setItem('currentloggedin_id', this.clients[i].client_id);
+													sessionStorage.setItem('currentloggedin_ic_incharge', this.clients[i].IC_id);
+													sessionStorage.setItem('currentloggedin_invid', this.clients[i].investment_id)
+													sessionStorage.setItem('currentloggedin_clientchatid', this.clients[i].client_chatid);
+													window.location = "client_recommendation.html"; // Redirecting to other page.
+												}
+											}
+										}
+									})
+						}
+
+						if (this.check == false) {
+							$("#message").css("display", "none");
+							this.attempt--;// Decrementing by one.
+							this.message = "You have left " + this.attempt + " attempt";
+							setTimeout(function () {
+								$("#message").css("display", "block");
+							}, 500);
+							document.getElementById("username").value = '';
+							document.getElementById("password").value = '';
+							if (ic.checked) {
+								document.getElementById("client").disabled = true;
+							} else if (client.checked) {
+								document.getElementById("ic").disabled = true;
+							}
+							// Disabling fields after 3 attempts.
+							if (this.attempt == 0) {
+								document.getElementById("username").disabled = true;
+								document.getElementById("password").disabled = true;
+								document.getElementById("submit").disabled = true;
+								document.getElementById("ic").disabled = true;
+								document.getElementById("client").disabled = true;
+								return false;
+							}
+						}
+					}
+				}
+			}
+		})
+
+	</script>
+	<!-- Optional JavaScript -->
+	<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+		integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+		crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+		integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+		crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+		integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+		crossorigin="anonymous"></script>
+</body>
+
+</html>

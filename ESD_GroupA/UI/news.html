@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <title>Investment</title>
+
+  <!-- Required meta tags -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+  <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" type="image/png" href="image/ESDV.png" />
+  <style>
+    .bs-example {
+      margin: 20px;
+    }
+    .dropdown .dropdown-menu a:hover
+        {
+        color: #fff;
+        background-color: #28a745;
+        border-color: #fff;
+        }
+  </style>
+</head>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<body>
+  <div class="bs-example">
+    <ul class="nav nav-tabs mt-3">
+        <li class="nav-item">
+            <a href="investment.html" class="nav-link ">Home</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="tweets.html">Twitter</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" href="news.html" >News</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="ic_recommendation.html">Recommendation Status</a>
+        </li>
+        <li class="nav-item ml-auto mr-0 my-2"><p style="text-align:right; margin:0px auto 0px auto; font-style: Lato;"><span
+            id="name"></span>
+        </li>
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <img src="image/user.png" width="25" height="25" class="rounded-circle">
+            </a>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+                <a class="dropdown-item" href="login.html" onclick="logout()">Log Out</a>
+            </div>
+        </li>   
+    </ul>
+</div>
+  <div id="app" class="container">
+    <div class="container6">
+      <form class="form-inline" onkeydown="return (event.keyCode!=13);">
+        <input class="form-control mr-sm-2" v-model.trim="search_key" placeholder="Search identifier for company (e.g. BABA, MSFT)"
+          id="search_key">
+        <button class="btn btn-outline-success my-2 my-sm-0" type="button" @click="findNews()">Search</button>
+      </form>
+    </div>
+    <div class="container" style="display:none" id="results"></div>
+    <table id="table" class="table table-striped" v-if='hasNews'>
+      <thead>
+        <tr class="text-center">
+          <!-- <th >Image</th> -->
+          <th>Title</th>
+          <th>Date</th>
+          <th>URL | Summary </th>
+        </tr>
+        <template v-for="headline in news">
+          <tr>
+            <!-- <td><img :src="headline.Images[0]" style="width:100%;" alt=""></td> -->
+            <td>{{ headline.Title }}</td>
+            <td>{{ headline.Date }}</td>
+            <td style="display:inline-block"><a v-bind:href="headline.Url">{{ headline.Url }}</a></td>
+            <td style="display:inline-block">{{ headline.Summary }}</td>
+          </tr>
+        </template>
+        <!-- <h5>{{ news}}</h5> -->
+      </thead>
+    </table>
+
+    <div class="text-danger" style="text-align:center" v-else>{{ message }}</div>
+  </div>
+  <script>
+    function logout(){
+        	function firstFunction(_callback){
+            sessionStorage.clear();
+            _callback();
+            }
+
+            function secondFunction(){
+                firstFunction(function() {
+                    window.location = 'login.html';
+                });    
+            }
+            secondFunction();
+        }
+    
+    var ic_name = sessionStorage.getItem("currentloggedin");
+    var type = sessionStorage.getItem("currentloggedin_type");
+        
+    if (ic_name === null) {
+      window.location = "login.html";
+    } else if (type != "IC") {
+      window.location = 'client_recommendation.html';
+    }
+    
+    document.getElementById("name").innerHTML = ic_name;
+    var news_URL = "http://localhost:5003/xignite";
+    var app = new Vue({
+      el: "#app",
+      computed: {
+        hasNews: function () {
+          return this.news.length > 0;
+        }
+      },
+      data: {
+        search_key: "",
+        news: [],
+        message: "",
+      },
+      methods: {
+        findNews: function () {
+          console.log(this.search_key)
+          const response =
+            fetch(`${news_URL}/${this.search_key}`)
+              .then(response => response.json())
+              .then(data => {
+                console.log(response);
+                if (data.code === 404) {
+                  this.news = [];
+                  this.message = "'" + this.search_key + "' not found. Please try another company identifier.";
+                } else {
+                  if (data.data.headlines.Headlines != null) {
+                    this.news = data.data.headlines.Headlines;
+                  } else {
+                    this.message = "'" + this.search_key + "' not found. Please try another company identifier.";
+                  }
+                  $("#results").css("display", "block");
+
+                }
+              })
+              .catch(error => {
+                // Errors when calling the service; such as network error, 
+                // service offline, etc
+                console.log(this.message + error);
+              })
+        }
+      }
+    })
+  </script>
+
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

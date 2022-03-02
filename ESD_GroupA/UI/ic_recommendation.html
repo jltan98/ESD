@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Recommendation</title>
+
+    <!-- Required meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css" />
+    <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+    <link rel="icon" type="image/png" href="image/ESDV.png" />
+    <style>
+        .bs-example {
+            margin: 20px;
+        }
+        .dropdown .dropdown-menu a:hover
+        {
+        color: #fff;
+        background-color: #28a745;
+        border-color: #fff;
+        }
+    </style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<body>
+    <div class="bs-example">
+        <ul class="nav nav-tabs mt-3">
+            <li class="nav-item">
+                <a href="investment.html" class="nav-link ">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="tweets.html">Twitter</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="news.html">News</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="ic_recommendation.html">Recommendation Status</a>
+            </li>
+            <li class="nav-item ml-auto mr-0 my-2"><p style="text-align:right; margin:0px auto 0px auto; font-style: Lato;"><span
+                id="name"></span>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <img src="image/user.png" width="25" height="25" class="rounded-circle">
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+                    <a class="dropdown-item" href="login.html" onclick="logout()">Log Out</a>
+                </div>
+            </li>   
+        </ul>
+    </div>
+    <div id="app" class="container">
+        <div class="container6">
+            <b><label for="select">Choose Your Investment ID:</label></b> &nbsp;
+            <select v-model="selected" @click="findInvID()" class="select-css" id="select">
+                <option v-for="inv in investment_ids">
+                    {{ inv }}
+                </option>
+            </select>
+
+        </div>
+        <div class="container" style="display:none" id="results">
+            <table id="table" class='table table-striped' v-if='hasInvID'>
+                <thead>
+                    <tr>
+                        <th>Investment ID</th>
+                        <th>Ticker Name</th>
+                        <th>Stock Name</th>
+                        <th>Creation Date</th>
+                        <th>Recommendation</th>
+                        <th>Status</th>
+                    </tr>
+                    <template v-for="investment in investments">
+                        <tr>
+                            <td>{{ investment.investment_id }}</td>
+                            <td>{{ investment.ticker_name }}</td>
+                            <td>{{ investment.stock_name }}</td>
+                            <td>{{ investment.reco_created_date }}</td>
+                            <td>{{ investment.recommendation }}</td>
+                            <td>{{ status }}</td>
+                        </tr>
+                    </template>
+                </thead>
+            </table>
+            <div class="text-danger" v-else>{{ message }}</div>
+        </div>
+    </div>
+
+    <script>
+        function logout(){
+        	function firstFunction(_callback){
+            sessionStorage.clear();
+            _callback();
+            }
+
+            function secondFunction(){
+                firstFunction(function() {
+                    window.location = 'login.html';
+                });    
+            }
+            secondFunction();
+        }
+    
+        var users_URL = "http://localhost:5000/users";
+        var reco_URL = "http://localhost:5001/recommendation";
+
+        // Login details
+        var user_type = sessionStorage.getItem("currentloggedin_type");
+        var login_name = sessionStorage.getItem("currentloggedin");
+        var login_id = sessionStorage.getItem("currentloggedin_id");
+
+        if (login_name === null) {
+            window.location = "login.html";
+        } else if (user_type != "IC") {
+            window.location = 'client_recommendation.html';
+        }
+
+        document.getElementById("name").innerHTML = login_name;
+
+        var app = new Vue({
+            el: "#app",
+            computed: {
+                hasInvID: function () {
+                    return this.investments.length > 0;
+                }
+            },
+            data: {
+                investments: [],
+                investment_ids: [],
+                clients: [],
+                selected: "",
+                status: "",
+                message: "There is a problem retrieving investment data, please try again later.",
+            },
+            mounted: function () {
+                const response =
+                    fetch(`${users_URL}/client`)
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(response);
+                            if (data.code === 404) {
+                                // no client in db
+                                this.message = data.message;
+                                this.clients = [];
+                            } else {
+                                this.clients = [data.data.clients][0];
+                                for (var i = 0; i < this.clients.length; i++) {
+                                    if (this.clients[i].IC_id == login_id) {
+                                        this.investment_ids = this.clients[i].investment_id.split(", ");
+                                    }
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            // Errors when calling the service; such as network error, 
+                            // service offline, etc
+                            console.log(this.message + error);
+
+                        });
+            },
+            methods: {
+                findInvID: function () {
+                    if (this.selected != "") {
+                        const response =
+                            fetch(`${reco_URL}/${login_id}/${this.selected}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log(response);
+                                    if (data.code === 404) {
+                                        this.message = data.message;
+                                        this.investments = [];
+                                        $("#results").css("display", "block");
+                                    } else {
+                                        this.investments = [data.data];
+                                        if (this.investments[0].status != "") {
+                                            this.status = this.investments[0].status;
+                                            if (this.status == "approve") {
+                                                this.status = "Client " + this.status + "s recommendation";
+                                            } else {
+                                                this.status = "Client " + this.status + "s recommendation";
+                                            }
+                                        } else {
+                                            this.status = "Client has yet to review the recommendation";
+                                        }
+                                        $("#results").css("display", "block");
+                                    }
+                                })
+                                .catch(error => {
+                                    // Errors when calling the service; such as network error, 
+                                    // service offline, etc
+                                    console.log(this.message + error);
+
+                                });
+                    }
+
+                }
+            }
+
+        });
+
+
+    </script>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>
